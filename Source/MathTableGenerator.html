@@ -1,0 +1,235 @@
+<html>
+<body>
+
+<div id="divUi">
+
+	<h3>Mathematical Table Generator</h3>
+
+	<p>
+		Specify a mathematical operation
+		and an arbitrary set of numerals,
+		then click the Generate button
+		to generate a mathematical table
+		showing the results of performing the specified operation
+		of each possible pair of digits.
+	</p>
+
+	<div>
+		<label>Numerals in Ascending Order Starting at Zero:</label>
+		<button onclick="buttonDecimal_Clicked()">Decimal</button>
+		<button onclick="buttonBase36_Clicked()">Base36</button>
+		<button onclick="buttonBase64_Clicked()">Base64</button>
+		<br />
+		<textarea id="inputNumerals" cols="40" rows="3">0123456789</textarea>
+	</div>
+
+	<div>
+		<label>Only Show Least Significant Digit in Sums:</label>
+		<input id="checkboxOnlyShowLeastSignificantDigitInSums" type="checkbox"></input>
+	</div>
+
+	<div>
+		<label>Operation:</label>
+		<select id="selectOperation">
+			<option>Add</option>
+			<option>Multiply</option>
+		</select>
+	</div>
+
+	<div>
+		<button onclick="buttonGenerate_Clicked()">Generate</button>
+	</div>
+
+	<div>
+		<label>Output:</label>
+		<br />
+		<div id="divOutput">[none]</div>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+// UI event handlers.
+
+function buttonBase36_Clicked()
+{
+	var numeralsBase36AsString =
+		"0123456789"
+		+ "abcdefghijklmnopqrstuvwxyz";
+
+	var d = document;
+	var inputNumerals = d.getElementById("inputNumerals");
+	inputNumerals.value = numeralsBase36AsString;
+}
+
+function buttonBase64_Clicked()
+{
+	var numeralsBase64AsString =
+		"0123456789"
+		+ "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		+ "abcdefghijklmnopqrstuvwxyz+/";
+
+	var d = document;
+	var inputNumerals = d.getElementById("inputNumerals");
+	inputNumerals.value = numeralsBase64AsString;
+}
+
+function buttonDecimal_Clicked()
+{
+	var numeralsDecimalAsString =
+		"0123456789";
+
+	var d = document;
+	var inputNumerals = d.getElementById("inputNumerals");
+	inputNumerals.value = numeralsDecimalAsString;
+}
+
+function buttonGenerate_Clicked()
+{
+	var d = document;
+
+	var inputNumerals = d.getElementById("inputNumerals");
+
+	var numeralsAsString = inputNumerals.value;
+
+	var checkboxOnlyShowLeastSignificantDigitInSums =
+		d.getElementById("checkboxOnlyShowLeastSignificantDigitInSums");
+	var onlyShowLeastSignificantDigitInSums =
+		checkboxOnlyShowLeastSignificantDigitInSums.checked;
+
+	var selectOperation = d.getElementById("selectOperation");
+	var operationName = selectOperation.value;
+
+	var generator =
+		new MathTableGenerator
+		(
+			numeralsAsString.split(""),
+			onlyShowLeastSignificantDigitInSums,
+			operationName
+		);
+
+	var table = generator.toHtmlElementTable();
+
+	var divOutput = d.getElementById("divOutput");
+	divOutput.innerHTML = "";
+	divOutput.appendChild(table);
+}
+
+// Classes.
+
+class MathTableGenerator
+{
+	constructor
+	(
+		numeralsAvailable,
+		onlyShowLeastSignificantDigitInSums,
+		operationName
+	)
+	{
+		this.numeralsAvailable =
+			numeralsAvailable
+			|| [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" ];
+
+		this.onlyShowLeastSignificantDigitInSums =
+			onlyShowLeastSignificantDigitInSums || false;
+
+		this.operationName = operationName;
+	}
+
+	// DOM.
+
+	toHtmlElementTable()
+	{
+		var d = document;
+
+		var table = d.createElement("table");
+		table.style = "width: 100%";
+
+		var thead = d.createElement("thead");
+
+		var th = d.createElement("th");
+		th.innerHTML = "+";
+		thead.appendChild(th);
+
+		for (var i = 0; i < this.numeralsAvailable.length; i++)
+		{
+			var numeralI = this.numeralsAvailable[i];
+			var th = d.createElement("th");
+			th.innerHTML = numeralI;
+			thead.appendChild(th);
+		}
+
+		table.appendChild(thead);
+
+		var base = this.numeralsAvailable.length;
+
+		for (var i = 0; i < this.numeralsAvailable.length; i++)
+		{
+			var numeralI = this.numeralsAvailable[i];
+
+			var tr = d.createElement("tr");
+
+			var tdLeft = d.createElement("td");
+			tdLeft.innerHTML = "<b>" + numeralI + "</b>";
+			tr.appendChild(tdLeft);
+
+			for (var j = 0; j < this.numeralsAvailable.length; j++)
+			{
+				var numeralJ = this.numeralsAvailable[j];
+
+				var result =
+					this.operationName == "Add"
+					? i + j
+					: this.operationName == "Multiply"
+					? i * j
+					: "?";
+
+				var resultAsString = this.convertNumberToStringInBase(result);
+
+				if (this.onlyShowLeastSignificantDigitInSums)
+				{
+					resultAsString =
+						resultAsString.substr(resultAsString.length - 1, 1);
+				}
+
+				var td = d.createElement("td");
+				td.style = "border:1px solid;"; // width:32px;";
+				td.innerHTML = resultAsString;
+
+				tr.appendChild(td);
+			}
+
+			table.appendChild(tr);
+		}
+
+		return table;
+	}
+
+	convertNumberToStringInBase(numberToConvert)
+	{
+		var base = this.numeralsAvailable.length;
+
+		var remaining = numberToConvert;
+		var digitsSoFar = [];
+
+		// todo - fix - 0 + 0 is blank this way.
+
+		while (remaining > 0)
+		{
+			var digitValue = remaining % base;
+			var digitAsStringInBase = this.numeralsAvailable[digitValue];
+			digitsSoFar.splice(0, 0, digitAsStringInBase);
+			remaining -= digitValue;
+			remaining /= base;
+		}		
+
+		var numberAsString = digitsSoFar.join("");				
+
+		return numberAsString;
+	}
+}
+
+</script>
+</body>
+</html>
